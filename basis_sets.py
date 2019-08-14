@@ -8,7 +8,9 @@ from hermite_poly import Hermite
 from simple_models import simulate, VAC, well_well
 
 class indicator(object):
-    """docstring for indicator."""
+    """Makes an indicator function. Meant to be used to make a grid of indicator
+    functions on the square [-N, N]^d, where d is the dimension. The dimension
+    is implicitly determined by the dimension of the center."""
 
     def __init__(self, fineness, endpoint, center):
         self.fineness = fineness
