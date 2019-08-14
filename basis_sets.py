@@ -14,12 +14,12 @@ class indicator(object):
         self.fineness = fineness
         self.endpoint = endpoint
         self.center = np.array(center)
-        self.length = endpoint/fineness
-        
+        self.length = endpoint/(fineness - 1)
+
 
     def eval(self, x):
-        left = self.center - self.length / 2
-        right = self.center  +  self.length / 2
+        left = self.center - self.length
+        right = self.center  +  self.length
         return np.array([int((v >= left).all() and (v < right).all()) for v in np.array(x)])
 
 
