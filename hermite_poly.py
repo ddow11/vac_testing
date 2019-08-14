@@ -16,3 +16,8 @@ class Hermite(object):
             y += (-1)**m * x ** (self.n - 2*m) / (factorial(m)*factorial(self.n - 2*m) * 2 ** m)
 
         return factorial(self.n) * y
+
+    def to_fcn(self):
+        def g(x):
+            return self.eval(x)
+        return g

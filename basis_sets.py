@@ -22,9 +22,13 @@ class indicator(object):
         return np.array([int((v >= left).all() and (v < right).all()) for v in np.array(x)])
 
 
+    def to_fcn(self):
+        def g(x):
+            return self.eval(x)
+        return g
 
 # f = indicator(10, 10, [0,0])
-# 
+#
 # print(f.eval([[0,0]]), f.eval([[0,1]]), f.eval([[-1,.5]]))
 #
 # f = indicator(10,10,0)

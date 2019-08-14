@@ -51,15 +51,16 @@ def well_well(x):
 # plt.show()
 
 class VAC(object):
-    """docstring for Cor."""
+    """class to do vac on a trajectory"""
 
     def __init__(self, basis, trajectory, lag):
         self.basis = basis
+        self.N = len(basis)
         self.trajectory = trajectory
         self.lag = lag
 
     def auto_cor(self):
-        n = len(self.basis)
+        n = self.N
         C = np.zeros((n,n))
         begining = self.lag
         end = len(self.trajectory) - self.lag
@@ -78,7 +79,7 @@ class VAC(object):
 
 
     def self_cor(self):
-        n = len(self.basis)
+        n = self.N
         C = np.zeros((n,n))
         for i in range(n):
             for j in range(n):
@@ -92,47 +93,71 @@ class VAC(object):
     def find_eigen(self, m):
         C_t = self.auto_cor()
         C_0 = self.self_cor()
-        print(C_t)
-        print(C_0)
-        eigvals, eigvecs = eigh(C_t, C_0, eigvals_only=False)
+        n = self.N
+        # print(C_t)
+        # print(C_0)
+        eigvals, eigvecs = eigh(C_t, C_0, eigvals=(n-m,n-1), eigvals_only=False)
 
-        return eigvals[::-1][0:m], eigvecs[::-1][0:m]
+        return eigvals[::-1], eigvecs[::-1]
 
 
+'''
+functions to deal with function norms and projection norms
+'''
 
-def make_grid(endpoint, dimension = 1, n  = 100):
+def makegrid(endpoint, dimension = 1, n  = 100):
     points_1D = np.array([x for x in np.linspace(-endpoint,endpoint,n)])
     points = itertools.product(points_1D, repeat = dimension)
     return np.array(list(points))
 
 def dot(f, g, endpoint, dimension = 1, n = 100):
-    points = make_grid(endpoint, dimension, n)
+    points = makegrid(endpoint, dimension, n)
     return sum([f(x)*g(x) for x in points]) / n**dimension
 
 
 def L2_norm(f, endpoint, dimension = 1, n = 100):
-    return np.sqrt(dot(f, f, endpoint, dimension, n))
+    points = makegrid(endpoint, dimension, n)
+    return np.sqrt(sum([f(x)**2 for x in points]) / n**dimension)
 
 def L2_d(f, g, endpoint, dimension = 1, n = 100):
-    def h(x):
-        return f(x) - g(x)
-    return L2_norm(h, endpoint, dimension, n)
+    points = makegrid(endpoint, dimension, n)
+    return np.sqrt(sum([(f(x) - g(x))**2 for x in points]) / n**dimension)
 
-def L2proj_d(f, g, endpoint, dimension = 1, n = 100):
-    def h(x):
-        return dot(f, g, endpoint, dimension, n) * g(x) / (L2_norm(g, endpoint, dimension, n)**2)
+def fcn_weighting(fs, v):
+    def g(x):
+        return sum([v_i * f(x) for v_i,f in zip(v,fs)])
 
-    return L2_d(f, h, endpoint, dimension = 1, n = 100)
+    return g
+
+def L2subspaceProj_d(fs, gs, endpoint, dimension = 1, n = 100):
+    if type(fs) != list:
+        fs = [fs]
+    if type(gs) != list:
+        gs = [gs]
+
+    l = [[dot(f, g, endpoint, dimension, n) for g in gs] for f in fs]
+    k = [1/L2_norm(g, endpoint, dimension, n)**2 for g in gs]
+    weighting = [np.multiply(v,k) for v in l]
+    return np.sqrt(sum([L2_d(fs[i], fcn_weighting(gs, weighting[i]), endpoint, dimension, n)**2 for i in range(len(fs))]))
 
 
+'''
+tests below
+'''
 def f(x):
-    return - x ** 2 + 3
+    return - x ** 2
 
 def g(x):
-    return 10 * x **2 - 30
+    return 10 * x **2
 
+def h(x):
+    return x
+
+def k(x):
+    return 2*x
 print(
 dot(f,g, endpoint = 10, dimension =  1, n = 1000),
 L2_norm(f, endpoint  = 10, dimension = 1, n = 1000),
-L2proj_distance(f, g, endpoint = 5, dimension = 1, n = 100)
+L2subspaceProj_d(f,g, endpoint = 2, dimension = 1, n = 100),
+L2subspaceProj_d(f, [g,k], endpoint = 2, dimension = 1, n = 100)
 )
