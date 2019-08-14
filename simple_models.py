@@ -62,16 +62,16 @@ class VAC(object):
     def auto_cor(self):
         n = self.N
         C = np.zeros((n,n))
-        begining = self.lag
+        beginning = self.lag
         end = len(self.trajectory) - self.lag
         if end <= 0:
-            return 0
+            return [0]
         for i in range(n):
             for j in range(n):
                 i_first = self.basis[i].eval(self.trajectory[0:end])
-                j_lagged = self.basis[j].eval(self.trajectory[begining:len(self.trajectory)])
+                j_lagged = self.basis[j].eval(self.trajectory[beginning:len(self.trajectory)])
 
-                i_lagged = self.basis[i].eval(self.trajectory[begining:len(self.trajectory)])
+                i_lagged = self.basis[i].eval(self.trajectory[beginning:len(self.trajectory)])
                 j_first = self.basis[j].eval(self.trajectory[0:end])
                 cor = np.append(i_first * j_lagged, i_lagged * j_first)
                 C[i][j] = np.mean(cor)
@@ -98,7 +98,7 @@ class VAC(object):
         # print(C_0)
         eigvals, eigvecs = eigh(C_t, C_0, eigvals=(n-m,n-1), eigvals_only=False)
 
-        return eigvals[::-1], eigvecs[::-1]
+        return eigvals, eigvecs
 
 
 '''
@@ -106,7 +106,7 @@ functions to deal with function norms and projection norms
 '''
 
 def makegrid(endpoint, dimension = 1, n  = 100):
-    points_1D = np.array([x for x in np.linspace(-endpoint,endpoint,n)])
+    points_1D = np.linspace(-endpoint,endpoint,n)
     points = itertools.product(points_1D, repeat = dimension)
     return np.array(list(points))
 

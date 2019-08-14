@@ -15,6 +15,7 @@ class indicator(object):
         self.endpoint = endpoint
         self.center = np.array(center)
         self.length = endpoint/fineness
+        
 
     def eval(self, x):
         left = self.center - self.length / 2
@@ -26,6 +27,9 @@ class indicator(object):
         def g(x):
             return self.eval(x)
         return g
+
+
+
 
 # f = indicator(10, 10, [0,0])
 #
