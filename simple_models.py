@@ -94,8 +94,8 @@ class VAC(object):
         C_t = self.auto_cor()
         C_0 = self.self_cor()
         n = self.N
-        print(C_t)
-        print(C_0)
+        # print(C_t)
+        # print(C_0)
         eigvals, eigvecs = eigh(C_t, C_0, eigvals=(n-m,n-1), eigvals_only=False)
 
         return eigvals, eigvecs

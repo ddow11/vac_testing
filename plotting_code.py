@@ -1,5 +1,3 @@
-rt scipy.stats
-from scipy.special import hermite
 from scipy.linalg import eigh
 import numpy as  np
 import matplotlib.pyplot as plt
@@ -8,16 +6,14 @@ from hermite_poly import Hermite
 from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d
 from mpl_toolkits import mplot3d
 from basis_sets import indicator
-from numpy import exp,arange
-from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 
 
 
 m = 3
 basis_H = [Hermite(n) for n in range(m)]
-basis_I = [indicator(fineness = 5, endpoint = 1, center = i) for i in makegrid(endpoint = 1, n = 5)]
+basis_I = [indicator(fineness = 5, endpoint = 2.5, center = i) for i in makegrid(endpoint = 2.5, n = 5)]
 
-x = simulate(0, .1, 100)
+x = simulate([0], .1, 100)
 x.set_seed(5)
 
 y = x.normal()
