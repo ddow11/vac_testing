@@ -8,7 +8,11 @@ import itertools
 
 
 class simulate(object):
-    """docstring for simulate."""
+    """
+    Class for simulating different dynamics. Normal does an exact simulation
+    of Gaussian potential. Potential does an inexact simulation given an arbitrary
+    potential.
+    """
 
     def __init__(self, x_0, delta_t, T):
         self.x_0 = np.array(x_0)
@@ -106,10 +110,29 @@ def dot(f, g, endpoint, dimension = 1, n = 100):
     return sum([f(x)*g(x) for x in points]) / n**dimension
 
 
+def L2_norm(f, endpoint, dimension = 1, n = 100):
+    return np.sqrt(dot(f, f, endpoint, dimension, n))
+
+def L2_d(f, g, endpoint, dimension = 1, n = 100):
+    def h(x):
+        return f(x) - g(x)
+    return L2_norm(h, endpoint, dimension, n)
+
+def L2proj_d(f, g, endpoint, dimension = 1, n = 100):
+    def h(x):
+        return dot(f, g, endpoint, dimension, n) * g(x) / (L2_norm(g, endpoint, dimension, n)**2)
+
+    return L2_d(f, h, endpoint, dimension = 1, n = 100)
+
+
 def f(x):
-    return sum(np.array(x)**2)
+    return - x ** 2 + 3
 
 def g(x):
-    return sum(np.cos(np.array(x)))
+    return 10 * x **2 - 30
 
-# print(dot(f,g,10,dimension = 2))
+print(
+dot(f,g, endpoint = 10, dimension =  1, n = 1000),
+L2_norm(f, endpoint  = 10, dimension = 1, n = 1000),
+L2proj_distance(f, g, endpoint = 5, dimension = 1, n = 100)
+)
