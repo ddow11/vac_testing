@@ -28,23 +28,29 @@ class simulate(object):
         n = round(self.T/self.delta_t)
         for i in range(1,n):
             t = self.delta_t * i
-            x_n = np.random.normal(x_n * np.exp(-t), 1 - np.exp(-2*t))
+            x_n = np.random.normal(x_n * np.exp(-self.delta_t), (1 - np.exp(-2*t)))
             trajectory = np.vstack((trajectory, x_n))
         return trajectory
 
 
-    def potential(self, V):
+    def potential(self, V, drift = 0):
         x_n = np.array(self.x_0)
         trajectory = np.array(x_n)
         n = round(self.T/self.delta_t)
         for i in range(0,n):
             xsi = np.random.normal(0,1, len(self.x_0))
-            x_n = x_n + V(x_n)*self.delta_t + np.sqrt(2*self.delta_t) * xsi
+            x_n = x_n + V(x_n - drift * self.delta_t*i)*self.delta_t + np.sqrt(2*self.delta_t) * xsi
             trajectory = np.vstack((trajectory, x_n))
         return trajectory
 
 def well_well(x):
-    return - x ** 3  +  x
+    return -x ** 3 + x
+
+def OU(x):
+    return -x
+
+def zero(x):
+    return 0
 
 # print(x)
 # plt.plot(x)

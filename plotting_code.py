@@ -3,20 +3,20 @@ import numpy as  np
 import matplotlib.pyplot as plt
 import matplotlib.path as path
 from hermite_poly import Hermite
-from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d
+from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU
 from mpl_toolkits import mplot3d
 from basis_sets import indicator
 
 
 
-m = 3
+m = 4
 basis_H = [Hermite(n) for n in range(m)]
-basis_I = [indicator(fineness = 5, endpoint = 2.5, center = i) for i in makegrid(endpoint = 2.5, n = 5)]
+basis_I = [indicator(fineness = 2.5, endpoint = 2, center = i) for i in makegrid(endpoint = 2.5, n = 10)]
 
-x = simulate([0], .1, 100)
-x.set_seed(5)
+x = simulate([1], .1, 200)
+# x.set_seed(10)
 
-y = x.normal()
+y = x.potential(OU)
 Y = VAC(basis_H, y, 1)
 ev_y_H = Y.find_eigen(3)
 
@@ -46,17 +46,21 @@ print(L2subspaceProj_d(basis_H, H_fcns_y, endpoint = 2.5, dimension = 1, n = 100
 # L2subspaceProj_d(H_fcns_z, I_fcns_z, endpoint = 2.5, dimension = 1, n = 100)
 # )
 
-z = np.linspace(-2.5,2.5,100)
-w = [h(z) for h in basis_H]
-l = [h(z) for h in H_fcns_y]
-e = [h(z) for h in I_fcns_y]
-k = [h(z) for h in H_fcns_z]
-o = [h(z) for h in I_fcns_z]
+t = np.linspace(-2,2,100)
+w = [h(t) for h in basis_H]
+l = [h(t) for h in H_fcns_y]
+e = [h(t) for h in I_fcns_y]
+k = [h(t) for h in H_fcns_z]
+o = [h(t) for h in I_fcns_z]
 
 
-plt.plot(z,o[0], "-r", label = "First")
-plt.plot(z,o[1], "-b", label = "Second")
-plt.plot(z,o[2], "-g", label = "Third")
-plt.legend()
-plt.title("Double well, estimated eigenfcns with indicator basis (n = 5)")
+plt.plot(t,o[0], "-r", label = "First, I")
+plt.plot(t,o[1], "-b", label = "Second, I")
+plt.plot(t,o[2], "-g", label = "Third, I")
+plt.plot(t,k[0], "-m", label = "First, H")
+plt.plot(t,k[1], "-c", label = "Second, H")
+plt.plot(t,k[2], "-k", label = "Third, H")
+
+plt.legend(loc=8, prop={'size': 7})
+plt.title("Estimated eigenfcns with indicator and Hermite bases")
 plt.show()
