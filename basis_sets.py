@@ -22,7 +22,7 @@ class indicator(object):
     def eval(self, x):
         left = self.center - self.length
         right = self.center  +  self.length
-        return np.array([int((v >= left).all() and (v < right).all()) for v in np.array(x)])
+        return np.all((x >= left) & (x < right), axis = 0).astype(int)
 
 
     def to_fcn(self):

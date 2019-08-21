@@ -15,7 +15,21 @@ class Hermite(object):
         for m in range(self.n // 2 + 1):
             y += (-1)**m * x ** (self.n - 2*m) / (factorial(m)*factorial(self.n - 2*m) * 2 ** m)
 
-        return factorial(self.n) * y
+        return factorial(self.n) * np.sum(y, axis = 0)
+
+    def to_fcn(self):
+        def g(x):
+            return self.eval(x)
+        return g
+
+class Poly(object):
+    """docstring for Poly."""
+
+    def __init__(self, n):
+        self.n = n
+
+    def eval(self, x):
+        return np.sum(x ** self.n, axis = 0)
 
     def to_fcn(self):
         def g(x):

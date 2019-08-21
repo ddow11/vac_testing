@@ -4,54 +4,60 @@ from scipy.linalg import eigh
 import numpy as  np
 import matplotlib.pyplot as plt
 import matplotlib.path as path
-from hermite_poly import Hermite
-from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d
+from hermite_poly import Hermite, Poly
+from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU
 from mpl_toolkits import mplot3d
 from basis_sets import indicator
 from numpy import exp,arange
 from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
+import tables as tb
+
+
+fineness  = 10
+endpoint = 1.2
+basis = [Poly(n).to_fcn() for n in range(fineness)]
+basis = [indicator(fineness, endpoint, center = i).to_fcn() for i in  makegrid(endpoint, dimension = 1, n = fineness)]
+basis = [Hermite(n).to_fcn() for n in range(fineness)]
+delta_t = .001
+T = 10000
+n = 1000
+
+h5 = tb.open_file("DW_1D_delta_t=.001,T=10000,n=10.h5", 'r')
+a = h5.root.data
+trajectory = np.array([a[1,:]])
+
+V = VAC(basis, trajectory, .385, delta_t)
+ev = V.find_eigen(4)
+
+time_lag = np.linspace(delta_t, .5, 40)
+evs = np.array([VAC(basis, trajectory, l, delta_t).find_eigen(4)[0] for l in time_lag])
+
+plt.plot(evs[:,2])
+plt.plot(evs[:,1])
+plt.plot(evs[:,0])
+
+s = evs[:,2] - evs[:,1]
+print([i for i in range(len(s)) if s[i] == max(s)])
+'''time_lag[i] = .385'''
+
+
+H_fcns = [fcn_weighting(basis, v) for v in ev[1].T][::-1]
 
 
 
-basis_I = [indicator(fineness = 5, endpoint = 1, center = i) for i in makegrid(endpoint = 1, dimension = 2, n = 5)]
-
-x = simulate([0,0], .1, 100)
-# x.set_seed(5)
-
-z = x.potential(well_well)
-Z = VAC(basis_I, z, 1)
-ev_z_I = Z.find_eigen(3)
-
-basis_I = [i.to_fcn() for i in basis_I]
-
-I_fcns_z = [fcn_weighting(basis_I, v) for v in ev_z_I[1].T][::-1]
-
-
-# X = makegrid(1, dimension = 2, n = 5)
-# Z = [h(X) for h in I_fcns_z]
-#
-# im = imshow(Z[0],cmap=cm.RdBu)
-# cset = contour(Z[0],arange(-1,1.5,0.2),linewidths=2,cmap=cm.Set2)
-# clabel(cset,inline=True,fmt='%1.1f',fontsize=10)
-# colorbar(im)
-
-# fig = plt.figure()
-# ax = plt.axes(projection = '3d')
-# ax.plot(z[:, 0], z[:, 1], z[:, 2])
+# z = np.array([np.linspace(-1.2,1.2,300)])
+# w = [h(z) for h in H_fcns]
+# plt.plot(z[0],w[0], "-r", label = "First")
+# plt.plot(z[0],w[1], "-b", label = "Second")
+# # plt.plot(z[0],w[2], "-g", label = "Third")
+# # plt.plot(z[0],w[3], label = 'Fourth')
+# # plt.plot(z[0],w[4], label = 'fifth')
+# plt.legend()
+# plt.title("Double well, estimated eigenfcns with indicator basis (n = 30,100)")
 # plt.show()
-# basis = [Hermite(n) for n in range(10)]
-# x = simulate(0, 1, 10000)
-# ev = find_eigen(3, basis, x, 1)
+#
 
 
-#
-# basis = [indicator(fineness = 4,endpoint = 4, center =  i) for i in range(-4,4)]
-# x = simulate([0], .1, 100)
-#
-# y = x.normal()
-# Y = VAC(basis, y, 1)
-# ev_y = Y.find_eigen(4)
-#
-# z = x.potential(well_well)
-# Z = VAC(basis, z, 1)
-# ev_z = Z.find_eigen(4)
+
+
+h5.close()
