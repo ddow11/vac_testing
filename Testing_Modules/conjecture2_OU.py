@@ -13,7 +13,7 @@ from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 import tables as tb
 
 dimension = 1
-fineness  = 10
+fineness  = 15
 endpoint = 2.5
 basis = [Hermite(0).to_fcn()]
 basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
