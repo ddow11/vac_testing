@@ -18,7 +18,7 @@ creating some data
 # delta_t = .001
 # T = 1000
 # n = 10
-# x = simulate(np.random.normal(0,1), delta_t, T, n)
+# x = simulate(delta_t, T, n)
 #
 # f = tb.open_file("DW_1D_delta_t=.001,T=1000,n=10.h5", "w")
 # filters = tb.Filters(complevel=5, complib='blosc')
@@ -29,29 +29,56 @@ creating some data
 # print("Done with double well samples.")
 
 # delta_t = .001
-# T = 50000
-# n = 1
-# x = simulate(np.random.normal(0,1), delta_t, T, n)
+# T = 1000
+# n = 1000
+# x = simulate(delta_t, T, n)
 #
-# f = tb.open_file("DW_1D_delta_t=.001,T=10000,n=1.h5", "w")
+# f = tb.open_file("Trajectory_Data/DW_1D_delta_t=.001,T=1000,n=1000.h5", "w")
 # filters = tb.Filters(complevel=5, complib='blosc')
 # out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-# out[:,:] = x.potential_lots(well_well)
+# out[:,:] = x.potential_lots(well_well, update = True)
 # f.close()
 #
 # print("Done with double well long sample.")
-#
-#
-#
-delta_t = .001
-T = 5000
-n = 10
-x = simulate(np.random.normal(0,1), delta_t, T, n)
 
-f = tb.open_file("OU_1D_delta_t=.001,T=5000,n=10.h5", "w")
+
+
+# delta_t = .001
+# T = 1000
+# n = 200
+# x = simulate(delta_t, T, n)
+#
+# f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
+# filters = tb.Filters(complevel=5, complib='blosc')
+# out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
+# out[:,:] = x.normal(update = True)
+# f.close()
+#
+# print("Done with OU.")
+
+# delta_t = .001
+# T = 1000
+# n = 150
+# speeds = [.05,1,5]
+# x = simulate(delta_t, T, n = n)
+#
+# f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={},speeds={}.h5".format(delta_t, T, n, speeds), "w")
+# filters = tb.Filters(complevel=5, complib='blosc')
+# out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
+# out[:,:] = x.normal(speed = speeds, update = True)
+# f.close()
+#
+# print("Done with OU varying speeds.")
+
+delta_t = .0001
+T = 1000
+n = 80
+x = simulate(delta_t, T, n = n)
+
+f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
 filters = tb.Filters(complevel=5, complib='blosc')
 out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-out[:,:] = x.potential_lots(OU)
+out[:,:] = x.normal(update = True)
 f.close()
 
-print("Done with OU.")
+print("Done with OU varying speeds.")

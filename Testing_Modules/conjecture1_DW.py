@@ -44,7 +44,7 @@ print("Done with finding true weightings.")
 
 time_lag = .39
 
-fineness  = [20,100,200, 300, 400]
+fineness  = [20, 100, 200, 300, 400]
 endpoint = 1.5
 delta_t = .001
 T = 1000

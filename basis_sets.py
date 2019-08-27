@@ -20,9 +20,10 @@ class indicator(object):
 
 
     def eval(self, x):
-        left = self.center - self.length
-        right = self.center  +  self.length
-        return np.all((x >= left) & (x < right), axis = 0).astype(int)
+        x = np.matrix(x)
+        left = np.tile(np.matrix(self.center - self.length).T, (1,len(x[0,:])))
+        right = np.tile(np.matrix(self.center + self.length).T, (1,len(x[0,:])))
+        return np.squeeze(np.array(np.all((x >= left) & (x < right), axis = 0).astype(int)))
 
 
     def to_fcn(self):
