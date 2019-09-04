@@ -5,7 +5,7 @@ import numpy as  np
 import matplotlib.pyplot as plt
 import matplotlib.path as path
 from hermite_poly import Hermite
-from simple_models import simulate, VAC, well_well
+from models_and_functions import simulate, VAC, well_well
 
 class indicator(object):
     """Makes an indicator function. Meant to be used to make a grid of indicator

@@ -7,17 +7,17 @@ import matplotlib.pyplot as plt
 
 class Hermite(object):
 
-    def __init__(self, n, d = 0):
+    def __init__(self, n, d = 1):
         self.n = n
         self.d = d
 
     def eval(self, x):
-        x = np.matrix(x)[self.d,:]
+        x = np.matrix(x)[self.d - 1,:]
         y = 0
         for m in range(self.n // 2 + 1):
             y += (-1)**m * np.power(x, (self.n - 2*m)) / (factorial(m)*factorial(self.n - 2*m) * 2 ** m)
 
-        return np.squeeze(np.array(factorial(self.n) * y))
+        return np.squeeze(np.array(np.sqrt(factorial(self.n)) * y))
 
     def to_fcn(self):
         def g(x):

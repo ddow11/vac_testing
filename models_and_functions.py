@@ -41,19 +41,19 @@ class simulate(object):
         speed: int, float, to 1D array
         '''
 
-        if type(speed) == int or type(speed) == float:
-            speed = np.array([speed])
-        if self.n % len(speed) != 0:
-            raise ValueError("Number of samples must be divisible by number of speeds.")
+        # if type(speed) == int or type(speed) == float:
+        #     speed = np.array([speed])
+        # if self.n % len(speed) != 0:
+        #     raise ValueError("Number of samples must be divisible by number of speeds.")
 
-        speed = np.tile(np.array(speed), self.n // len(speed))
+        # speed = np.tile(np.array(speed), self.n // len(speed))
 
         N = round(self.T/self.delta_t)
         now = np.random.normal(np.zeros(self.n),1)
         storage = np.zeros((self.n, N))
-        m = np.exp(-speed*self.delta_t)
+        m = np.exp(-self.delta_t)
         sigma = np.sqrt(1 - np.square(m))
-        R = np.random.normal(0, np.matrix(sigma).T, [self.n, N])
+        R = np.random.normal(0, 1, [self.n, N]) * sigma
         update_time = round(.01*N)
         for i in range(N):
             storage[:,i] = now
@@ -128,12 +128,12 @@ class VAC(object):
         if len(trajectory) % dimension != 0:
             raise ValueError('Dimension of trajectory not divisible by dimension desired.')
         self.basis = basis
-        self.N = len(trajectory[0,:])
         self.trajectory = trajectory
         self.time_lag = time_lag
         self.lag = np.rint(time_lag / delta_t).astype(int)
+        self.N = int(len(trajectory) / dimension) * (len(trajectory[0,:]) - self.lag)
         self.dimension = dimension
-        self.X = np.array([b(np.hstack([trajectory[d:d+dimension, 0:(self.N - self.lag)] for d in range(0,len(trajectory), dimension)])) for b in basis])
+        self.X = np.array([b(np.hstack([trajectory[d:d+dimension, 0:(len(trajectory[0,:]) - self.lag)] for d in range(0,len(trajectory), dimension)])) for b in basis])
         self.Y = np.array([b(np.hstack([trajectory[d:d+dimension, self.lag:] for d in range(0,len(trajectory), dimension)])) for b in basis])
         # self.X = np.array([b(trajectory[0:dimension,0:(self.N - self.lag)]) for  b in basis])
         # self.Y = np.array([b(trajectory[:,self.lag:]) for b in basis])
@@ -144,13 +144,13 @@ class VAC(object):
         '''
         This is a matrix of E[f_i(X_0)f_j(X_0)] for f_i,f_j basis functions.
         '''
-        return (np.matmul(self.X, self.X.T) + np.matmul(self.Y, self.Y.T)) / (2*self.N)
+        return (np.matmul(self.X, self.X.T) + np.matmul(self.Y, self.Y.T)) / (2*(self.N  - 1))
 
     def C_t(self):
         '''
         This is a matrix of E[f_i(X_(delta_t))f_j(X_0)] for f_i,f_j basis functions.
         '''
-        return (np.matmul(self.X, self.Y.T) + np.matmul(self.Y, self.X.T)) / (2 * self.N)
+        return (np.matmul(self.X, self.Y.T) + np.matmul(self.Y, self.X.T)) / (2 * (self.N - 1))
 
     def find_eigen(self, m):
         C_t = self.C_t()
@@ -191,62 +191,71 @@ def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis
             return "Error: Must have a basis for f's supplied if no Phi_f given."
         else:
             A = np.array([f(distribution) for f in basis_f])
-            # print(A)
+            print(A)
 
     if type(Phi_g) == bool:
         if type(basis_f) == bool:
             return "Error: Must have a basis for g's supplied if no Phi_g given."
         else:
             B = np.array([g(distribution) for g in basis_g])
-            # print(B)
+            print(B)
 
     else:
         A = Phi_f
         B = Phi_g
 
     A = np.dot(w_f, A)
-    # print(A)
+    print(A)
 
     B = np.dot(w_g, B)
-    # print(B)
+    print(B)
 
     P = np.dot(A,B.T)
-    # print(P)
+    print(P)
 
     N = 1 / np.tensordot(np.sqrt(np.sum(np.square(A), axis = 1)), np.sqrt(np.sum(np.square(B), axis = 1)), axes = 0)
-    # print(N)
+    print(N)
 
     P = np.multiply(P, N)
-    # print(P)
+    print(P)
     svd = np.linalg.svd(P)[1]
     print(svd)
+    print(len(w_f)**2 - np.sum(np.square(svd)))
 
-    if len(w_f) < np.sum(np.square(svd)) < len(w_f) + 1e-13:
+    if len(w_f)**2 < np.sum(np.square(svd)) < len(w_f)**2 + 1e-13:
         return 0
-    elif np.sum(np.square(svd)) > len(w_f):
+    elif np.sum(np.square(svd)) > len(w_f)**2:
         return "Singular values are too large, probably not normalized correctly."
     else:
         return np.sqrt(len(w_f) - np.sum(np.square(svd)))
 
 
 def f(x):
-    return np.squeeze(np.array(np.sum(np.square(x+1), axis = 0)))
+    return np.squeeze(x)
 
 def h(x):
-    return np.squeeze(np.array(np.sum(x+1, axis = 0)))
+    return np.squeeze(x**2)
 
 def g(x):
-    return np.squeeze(np.sin(x))
+    return np.squeeze(x**3)
 
 def k(x):
+    return np.squeeze(x**4)
+
+def l(x):
+    return np.squeeze(x**5)
+
+def p(x):
+    return np.squeeze(np.sin(x))
+
+def s(x):
     return np.squeeze(np.cos(x))
 
-t = np.array([np.linspace(-2,2,5)])
+t = np.array(np.linspace(0,1,2))
 
-print(L2subspaceProj_d(w_f = np.array([[1,0],[1,0]]), w_g = np.array([[0,1],[0,1]]),
-                distribution = t, basis_f = np.array([g,k]), basis_g = np.array([g,k])))
+print(L2subspaceProj_d(w_f = np.identity(3), w_g = np.identity(3),
+                distribution = t, basis_f = np.array([f,f,f]), basis_g = np.array([f,f,f])))
 
-t = np.ones([10,5])
 #
 # V = VAC([f,h], t, 1, 1, dimension = 2)
 #
