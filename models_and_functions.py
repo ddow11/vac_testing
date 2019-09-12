@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 from hermite_poly import Hermite
 import itertools
 from scipy.linalg import subspace_angles
+import scipy
 
 
 class simulate(object):
@@ -90,6 +91,47 @@ class simulate(object):
                 print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
         return storage
 
+    def underdamped(self, update = False):
+        N = round(self.T/self.delta_t)
+        now = np.random.normal(np.zeros(self.n),1)
+        storage = np.zeros((self.n, N))
+        delta_t = self.delta_t
+        m = 2/np.sqrt(3) * np.exp(-delta_t/2) * np.array([[np.cos(np.sqrt(3)/2 * delta_t - np.pi/6), np.sin(np.sqrt(3)/2 * delta_t)], [np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t + np.pi/6)]])
+        sigma2 =  np.array([[1 - 2 * np.exp(-delta_t), 0], [0, 1 - 2 * np.exp(-delta_t)]]) + 4/3 * np.exp(-delta_t) * np.array([[np.cos(np.sqrt(3)/2 * delta_t + np.pi/6), np.sin(np.sqrt(3)/2 * delta_t) ],[np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t - np.pi/6)]])
+        print(sigma2)
+        print([sigma2]*(self.n//2))
+        sigma2 = scipy.linalg.block_diag(*([sigma2]*(self.n//2)))
+        update_time = round(.01*N)
+        print(m)
+        print(sigma2)
+        for i in range(N):
+            storage[:,i] = now
+            mean = np.dot(m, np.vstack([now[slice(None, None, 2)], now[slice(1, None, 2)]]))
+            mean = np.dstack((mean[0,:], mean[1,:])).flatten()
+            print(mean)
+            now = np.random.multivariate_normal(mean, sigma2)
+            if update and i % update_time == 0:
+                print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
+        return storage
+
+    def underdamped_approx(self, update = False):
+        if self.n % 2 != 0:
+            return "Number of trajectories must be divisible by 2."
+        N = round(self.T/self.delta_t)
+        now = np.random.normal(np.zeros(self.n),1)
+        storage = np.zeros((self.n, N))
+        R = np.multiply(np.random.normal(np.zeros((self.n // 2, N)),1), np.sqrt(2*self.delta_t))
+        if update:
+            update_time = round(.01 * N)
+        for i in range(0,N):
+            storage[:,i] = now
+            now_q = now[slice(None, None, 2)]
+            now_p = now[slice(1, None, 2)]
+            now[slice(None, None, 2)] = np.add(now_q, np.multiply(now_p, self.delta_t))
+            now[slice(1, None, 2)] = np.add(now_p, np.add(np.multiply(np.add(now_q, now_p), -self.delta_t), R[:,i]))
+            if update and i % update_time == 0:
+                print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
+        return storage
 
 
 
@@ -115,9 +157,10 @@ def zero(x):
 
 
 class VAC(object):
+
     """Class to do vac on a trajectory. Uses algorithm described in Klus et al, 2018."""
 
-    def __init__(self, basis, trajectory, time_lag, delta_t, dimension = 1, update = False):
+    def __init__(self, basis, trajectory, time_lag, delta_t, dimension = 1, update = False, C_0 = True):
         '''
         basis: list of fcns
         N: int
@@ -137,15 +180,20 @@ class VAC(object):
         self.Y = np.array([b(np.hstack([trajectory[d:d+dimension, self.lag:] for d in range(0,len(trajectory), dimension)])) for b in basis])
         # self.X = np.array([b(trajectory[0:dimension,0:(self.N - self.lag)]) for  b in basis])
         # self.Y = np.array([b(trajectory[:,self.lag:]) for b in basis])
-        if update:
+        self.update = update
+        self.C = C_0
+        if self.update:
             print("Done generating VAC Object.")
 
     def C_0(self):
         '''
         This is a matrix of E[f_i(X_0)f_j(X_0)] for f_i,f_j basis functions.
         '''
-        return (np.matmul(self.X, self.X.T) + np.matmul(self.Y, self.Y.T)) / (2*(self.N  - 1))
+        if self.C:
+            return (np.matmul(self.X, self.X.T) + np.matmul(self.Y, self.Y.T)) / (2*(self.N  - 1))
 
+        else:
+            return np.identity(len(self.basis))
     def C_t(self):
         '''
         This is a matrix of E[f_i(X_(delta_t))f_j(X_0)] for f_i,f_j basis functions.
@@ -153,12 +201,28 @@ class VAC(object):
         return (np.matmul(self.X, self.Y.T) + np.matmul(self.Y, self.X.T)) / (2 * (self.N - 1))
 
     def find_eigen(self, m):
-        C_t = self.C_t()
-        C_0 = self.C_0()
         l = len(self.basis)
-        eigvals, eigvecs = eigh(C_t, C_0, eigvals=(l-m,l-1), eigvals_only=False)
+        if self.update:
+            print("Finding eigenvalues.")
+        eigvals, eigvecs = eigh(self.C_t(), self.C_0(), eigvals=(l-m,l-1), eigvals_only=False)
 
         return [eigvals, eigvecs]
+
+    def A(self):
+        '''
+        Returns a matrix A such that, Y = AX.
+        '''
+
+        return np.matmul(np.matmul(self.Y,self.X.T), np.linalg.inv(np.matmul(self.X, self.X.T)))
+
+    def EDMD(self, m):
+        l = len(self.basis)
+        if self.update:
+            print("Finding eigenvalues.")
+        eigvals, eigvecs = np.linalg.eig(self.A().T)
+        return [eigvals[:m], eigvecs[:m,:]]
+
+
 
 
 '''
@@ -183,7 +247,8 @@ def fcn_weighting(fs,weighting):
         return np.dot(weighting, [f(x) for f in fs])
     return g
 
-def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis_f = False, basis_g = False):
+def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis_f = False, basis_g = False,
+                                            normalize_f = True, normalize_g = True, dimension = 1, orthoganalize = False):
     if len(w_f) != len(w_g):
         return "Error: Subspaces have different dimensions."
     if type(Phi_f) == bool:
@@ -205,30 +270,41 @@ def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis
         B = Phi_g
 
     A = np.dot(w_f, A)
-    print(A)
+
+    # print(A)
 
     B = np.dot(w_g, B)
-    print(B)
 
-    P = np.dot(A,B.T)
-    print(P)
+    # print(B)
 
-    N = 1 / np.tensordot(np.sqrt(np.sum(np.square(A), axis = 1)), np.sqrt(np.sum(np.square(B), axis = 1)), axes = 0)
-    print(N)
-
-    P = np.multiply(P, N)
-    print(P)
+    if orthoganalize:
+        A = scipy.linalg.orth(A.T).T
+        B = scipy.linalg.orth(B.T).T
+        P = np.dot(A,B.conj().T)
+    else:
+        if normalize_f and normalize_g:
+            N = 1 / np.tensordot(np.sqrt(np.sum(np.square(A), axis = 1)), np.sqrt(np.sum(np.square(B), axis = 1)), axes = 0)
+        elif normalize_f:
+            N = 1 / np.tensordot(np.sqrt(np.sum(np.square(A), axis = 1)), np.ones(len(A)) * np.sqrt(distribution.size), axes = 0)
+        elif normalize_g:
+            N = 1 / np.tensordot(np.ones(len(B)) * np.sqrt(distribution.size), np.sqrt(np.sum(np.square(B), axis = 1)), axes = 0)
+        else:
+            N = np.identity(len(w_f)) / distribution.size
+        # print(N)
+        P = np.multiply(np.dot(A,B.conj().T), N)
+    # print(P)
     svd = np.linalg.svd(P)[1]
     print(svd)
-    print(len(w_f)**2 - np.sum(np.square(svd)))
 
-    if len(w_f)**2 < np.sum(np.square(svd)) < len(w_f)**2 + 1e-13:
+    if len(w_f) < np.sum(np.square(svd)) < len(w_f) + 1e-4:
         return 0
-    elif np.sum(np.square(svd)) > len(w_f)**2:
+    elif np.sum(np.square(svd)) > len(w_f):
         return "Singular values are too large, probably not normalized correctly."
     else:
         return np.sqrt(len(w_f) - np.sum(np.square(svd)))
 
+def d(x):
+    return np.squeeze(x/x)
 
 def f(x):
     return np.squeeze(x)

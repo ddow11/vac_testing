@@ -5,7 +5,7 @@ import numpy as  np
 import matplotlib.pyplot as plt
 import matplotlib.path as path
 from hermite_poly import Hermite
-from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU
+from models_and_functions import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU
 from mpl_toolkits import mplot3d
 from basis_sets import indicator
 from numpy import exp,arange
@@ -70,15 +70,15 @@ creating some data
 #
 # print("Done with OU varying speeds.")
 
-delta_t = .0001
+delta_t = .001
 T = 1000
-n = 80
+n = 100
 x = simulate(delta_t, T, n = n)
 
-f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
+f = tb.open_file("Trajectory_Data/UD_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
 filters = tb.Filters(complevel=5, complib='blosc')
 out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-out[:,:] = x.normal(update = True)
+out[:,:] = x.underdamped(update = True)
 f.close()
 
 print("Done with OU varying speeds.")
