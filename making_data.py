@@ -70,15 +70,15 @@ creating some data
 #
 # print("Done with OU varying speeds.")
 
-delta_t = .001
+delta_t = .01
 T = 1000
-n = 100
+n = 160
 x = simulate(delta_t, T, n = n)
 
-f = tb.open_file("Trajectory_Data/UD_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
+f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
 filters = tb.Filters(complevel=5, complib='blosc')
 out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-out[:,:] = x.underdamped(update = True)
+out[:,:] = x.normal(update = True)
 f.close()
 
 print("Done with OU varying speeds.")

@@ -20,9 +20,9 @@ basis = [indicator(fineness, endpoint, center = i).to_fcn() for i in  makegrid(e
 basis = [Hermite(0).to_fcn()]
 basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
 basisSize = len(basis)
-delta_t = .001
+delta_t = .01
 T = 1000
-n = 100
+n = 160
 length = round(T / delta_t)
 print("Now opening trajectory data.")
 h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
@@ -66,12 +66,70 @@ error = [L2subspaceProj_d(w_f = w_f, w_g = ev[1].T[basisSize - m:][::-1],
 What does error vs. time lag look like?
 -------------------------------------------------------------------------------
 '''
+
+dimension = 1
+fineness  = 10
+endpoint = 2.5
+basis = [Hermite(0).to_fcn()]
+basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
+basisSize = len(basis)
+delta_t = .01
+T = 1000
+n = 160
+h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
+a = h5.root.data
+m = 3
+l = basisSize
+time_lag = np.linspace(delta_t, 3, 15)
+distribution = np.random.normal(np.zeros([dimension,int(1e7)]), 1)
+"Number of eigenfunctions to compare. Must be less than basisSize."
+m = 3
+
+basis_true = [Hermite(0).to_fcn()]
+basis_true = basis_true + [Hermite(n, d).to_fcn() for n in range(1, m) for d in range(dimension)]
+w_f = np.identity(m)
+
+Phi_g = np.array([f(distribution) for f in basis])
+Phi_f = np.array([f(distribution) for f in basis_true])
+
+starts = [0,10,20,30,40,50,60]
+
+
+evsList = []
+errors = []
+eigen_dists = []
+for i in starts:
+    print("Now opening trajectory data.")
+    h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
+    a = h5.root.data
+    t = np.array(a[i:i+10,:])
+    h5.close()
+    evs = [VAC(basis, t, l, delta_t, dimension = dimension, update = True).find_eigen(basisSize) for l in time_lag]
+    evsList.append(ev)
+    eigen_dists.append([e[0][basisSize - m] - e[0][basisSize - m - 1] for e in ev])
+    error = [L2subspaceProj_d(w_f = w_f, w_g = ev[1].T[basisSize - m:][::-1],
+                            distribution = distribution, Phi_f = Phi_f, Phi_g = Phi_g, normalize_f = False)
+                            for ev in evs]
+    errors.append(error)
+    print("Done with {}".format(i))
+
 f,ax = plt.subplots(1)
-ax.plot(eigen_dist, error)
-plt.xlabel("Eigenvalue distance")
+avgError = np.zeros(len(time_lag))
+avgEigen = np.zeros(len(time_lag))
+for i in range(len(starts)):
+    ax.plot(eigen_dists[i], errors[i], color = "green", alpha = .5)
+    avgError += np.array(errors[i]) / len(errors)
+    avgEigen += np.array(eigen_dists[i]) / len(eigen_dists)
+ax.plot(avgEigen, avgError, color  = "green", linewidth = 3)
+
+for i in range(0, len(time_lag), 2):
+    ax.scatter(avgEigen[i], avgError[i], s = 18, color = "green")
+    ax.annotate("{}".format(round(time_lag[i],3)), xy = (avgEigen[i] - .001, avgError[i] + .015), weight='bold', fontsize = 6.5)
+
+plt.xlabel("Spectral gap")
 plt.ylabel("Projection Error in estimated subspaces")
 plt.title("Error in estimation with varying time lags (OU process)")
-plt.annotate("Using a basis of 10 Hermite polynomials and 4000 seconds of data", (0,0), (0, -32), fontsize = 8, xycoords='axes fraction', textcoords='offset points', va='top')
+plt.annotate("Using a basis of 10 Hermite polynomials. Time lags annotated.", (0,0), (0, -32), fontsize = 8, xycoords='axes fraction', textcoords='offset points', va='top')
 ax.set_xlim(xmin = 0)
 plt.savefig("Graphs/eigenfcnError_OU_HermiteBasis.png")
 
@@ -228,24 +286,33 @@ endpoint = 2.5
 basis = [Hermite(0).to_fcn()]
 basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
 basisSize = len(basis)
-delta_t = .001
+delta_t = .01
 T = 1000
-n = 100
+n = 160
 h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
 a = h5.root.data
 m = 3
 l = basisSize
-time_lag = np.hstack([np.linspace(delta_t, 5*delta_t, 4), np.linspace(6*delta_t, .25, 8)])
+time_lag = np.hstack([np.linspace(delta_t, .3, 10), np.linspace(.4, 3, 10)])
 C_true = [np.diag([np.e**(-i*t) for i in range(basisSize)]) for t in time_lag]
-starts = [5,15,20]
+starts = [100,110,120,130,140]
 
+basis_true = [Hermite(0).to_fcn()]
+basis_true = basis_true + [Hermite(n, d).to_fcn() for n in range(1, m) for d in range(dimension)]
+w_f = np.identity(m)
+
+l = basisSize
 Cts = []
 C0s = []
+evs = []
+evss = []
+eigen_dist = []
+proj_error = []
 for i in starts:
     print("Now opening trajectory data.")
     h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
     a = h5.root.data
-    t = np.array(a[i:i+3,:])
+    t = np.array(a[i:i+10,:])
     h5.close()
     vac = [VAC(basis, t, l, delta_t, dimension = dimension, update = True) for l in time_lag]
     print("Now getting C_ts")
@@ -255,7 +322,18 @@ for i in starts:
     C_0s = [v.C_0() for v in vac]
     C0s.append(C_0s)
     print("Done with {}th start".format(i))
+    evs = [eigh(C_t,C_0, eigvals=(l-m-1,l-1), eigvals_only=False) for C_t,C_0 in zip(C_ts,C_0s)]
+    evss.append(evs)
+    eigen_dist.append([ev[0][1] - ev[0][0] for ev in evs])
+    V = [ev[1].T[1:][::-1].T for ev in evs]
+    Q = [np.linalg.qr(v)[0] for v in V]
+    error_exact = [np.sqrt(m - np.sum(np.square(np.linalg.svd(q[0:3,0:3])[1]))) for q in Q]
+    proj_error.append(error_exact)
 
+Es = [[np.dot(np.linalg.inv(C_0), C_hat_t) - C_t for C_hat_t,C_t,C_0 in zip(C_ts,C_true,C_0s)] for C_ts,C_0s in zip(Cts,C0s)]
+np.save("Trajectory_Data/ErrorMatrices_OU.npy", Es)
+
+Es = np.load("Trajectory_Data/ErrorMatrices_OU.npy")
 error_sampling_fro = []
 error_sampling_2 = []
 eigen_dist = []
@@ -263,15 +341,27 @@ error_exact = []
 error_precise_fro = []
 error_precise_2 = []
 
-for C_ts,C_0s in zip(Cts, C0s):
-    Es = [C_hat_t - 1/2*np.dot(C_t, C_0) - 1/2*np.dot(C_t, C_hat_t) for C_hat_t,C_t,C_0 in zip(C_ts,C_true,C_0s)]
+EHats = []
+Esvds = []
+estimatedErrors_L2 = []
+estimatedErrors_max = []
+
+
+
+for E in Es:
+    # Es = [C_hat_t - 1/2*np.dot(C_0, C_t) - 1/2*np.dot(C_hat_t,C_t) for C_hat_t,C_t,C_0 in zip(C_ts,C_true,C_0s)]
+    EHat = [[[E[k][i,j]/(np.e**(- time_lag[k] * j) - np.e**(-time_lag[k] * (i + m))) for j in range(m)] for i in range(basisSize - m)] for k in range(len(time_lag))]
+    EHats.append(EHat)
+    Esvd = np.array([np.linalg.svd(eHat)[1] for eHat in EHat])
+    Esvds.append(estimatedError)
+    estimatedErrors_L2.append(np.sqrt(np.sum(np.square(Esvd), axis = 1)))
+    estimatedErrors_max.append(np.amax(Esvd, axis = 1))
     error_sampling_fro.append([np.linalg.norm(E, 'fro') for E in Es])
-    error_sampling_2.append([np.linalg.norm(E, 2) for E in Es])
-    error_precise_fro.append([np.linalg.norm(E[3:,:], 'fro') for E in Es])
-    error_precise_2.append([np.linalg.norm(E[3:,:], 2) for E in Es])
+    # error_sampling_2.append([np.linalg.norm(E, 2) for E in Es])
+    # error_precise_fro.append([np.linalg.norm(E[3:,:], 'fro') for E in Es])
+    # error_precise_2.append([np.linalg.norm(E[3:,:], 2) for E in Es])
 
-
-eigen_dist_exact = np.array([np.e**(-3*t) - np.e**(-4*t) for t in time_lag])
+eigen_dist_exact = np.array([np.e**(-2*t) - np.e**(-3*t) for t in time_lag])
 fig, ax = plt.subplots(1)
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
@@ -283,7 +373,6 @@ for error in error_sampling_fro:
     avg_error += np.array(error) / len(error_sampling_fro)
 ax.loglog(time_lag, avg_error, color = "green", linewidth = 2, label = "Average Log Sampling Error")
 plt.legend(loc = "lower right")
-ax.set_xlim(xmin = 0)
 plt.xlabel("Time Lag")
 plt.annotate("Basis of 10 Hermite polynomials, 3 trajectories of 3,000 seconds of data", (0,0), (0, -32), fontsize = 7, xycoords='axes fraction', textcoords='offset points', va='top')
 plt.title("Sampling Error Frobenius Norm vs. Eigen Distance")
@@ -340,6 +429,103 @@ plt.xlabel("Time Lag")
 plt.annotate("Basis of 10 Hermite polynomials, 3 trajectories of 3,000 seconds of data", (0,0), (0, -32), fontsize = 7, xycoords='axes fraction', textcoords='offset points', va='top')
 plt.title("Streamlined Sampling 2-Error from vs. Eigen Distance")
 plt.savefig("Graphs/SamplingErrorvsEigenDistanceStreamlined_2.png")
+
+'''
+PLOTTING ESTIMATED ERROR VS ACTUAL ERROR
+'''
+
+
+error_sampling_fro = [[np.linalg.norm(E[t][m:, 0:m], 'fro') for t in range(len(time_lag))] for E in Es]
+estimatedError_firstOrder = [[np.minimum(np.linalg.norm([[E[t][i,j]/(np.e**(- time_lag[t] * i) - np.e**(-time_lag[t] * j)) for j in range(m)] for i in range(m, basisSize)], 'fro'), np.sqrt(m)) for t in range(len(time_lag))] for E in Es]
+eigen_dist_exact = np.array([np.e**(-2*t) - np.e**(-3*t) for t in time_lag])
+
+
+fig, ax = plt.subplots(nrows = 1, ncols = 4, figsize  =(12,5))
+plt.rc('text', usetex=True)
+plt.rc('font', family='serif')
+# [ax.plot(time_lag, error, color = "green", alpha = .4) for error in error_precise_fro]
+# ax.plot(time_lag, 1/np.array(eigen_dist_exact), color = "red", linewidth = 2, label = "Log Eigen Distance")
+
+"""
+First plot:
+"""
+estimated_error = [np.array(error) / eigen_dist_exact for error in error_sampling_fro]
+estimated_error = np.array([np.minimum(error, np.sqrt(m)) for error in estimated_error])
+estimatedErrors = np.array([np.minimum(error, np.sqrt(m)) for error in estimated_error])
+[ax[0].plot(time_lag, error, color = "green", alpha = .2) for error in estimatedErrors]
+[ax[0].plot(time_lag, error, color = "blue", alpha = .2) for error in proj_error]
+
+avgEstimated = np.sum(estimatedErrors, axis = 0) / len(estimatedErrors)
+# avgEstimated = estimatedErrors
+avgError = np.sum(proj_error, axis  = 0) / len(proj_error)
+
+ax[0].plot(time_lag, avgEstimated, color = "green", linewidth = 3, label = "1st conjecture")
+ax[0].plot(time_lag, avgError, color = "blue", linewidth = 3, label = "Actual")
+ax[0].legend(loc = "lower right", fontsize = "x-small")
+ax[0].set_xlim(xmin = 0)
+ax[0].set_xlabel("Time Lag")
+
+"""
+Second plot:
+"""
+[ax[1].plot(time_lag, error, color = "green", alpha = .2) for error in estimatedError_firstOrder]
+[ax[1].plot(time_lag, error, color = "blue", alpha = .2) for error in proj_error]
+
+avgEstimated = np.sum(estimatedError_firstOrder, axis = 0) / len(estimatedErrors)
+# avgEstimated = estimatedErrors
+avgError = np.sum(proj_error, axis  = 0) / len(proj_error)
+
+ax[1].plot(time_lag, avgEstimated, color = "green", linewidth = 3, label = "First Order Approx")
+ax[1].plot(time_lag, avgError, color = "blue", linewidth = 3, label = "Actual")
+ax[1].legend(loc = "lower right", fontsize = "x-small")
+ax[1].set_xlim(xmin = 0)
+ax[1].set_xlabel("Time Lag")
+
+"""
+Third plot:
+"""
+estimatedErrors = np.array([np.linalg.norm([[1/(np.e**(- time_lag[k] * j) - np.e**(-time_lag[k] * i)) for j in range(m)] for i in range(m, basisSize)], 'fro') for k in range(len(time_lag))])
+
+constantMultiple = np.average([np.absolute([E[i][m:,0:m] / time_lag[i] for i in range(len(time_lag))]) for E in Es[0:1]])
+estimatedErrors = constantMultiple*np.array(estimatedErrors)
+estimatedErrors = np.minimum(estimatedErrors, np.sqrt(m))
+[ax[2].plot(time_lag, error, color = "blue", alpha = .2) for error in proj_error]
+
+avgError = np.sum(proj_error, axis  = 0) / len(proj_error)
+
+ax[2].plot(time_lag, estimatedErrors, color = "green", linewidth = 3, label = "Simplified 1st order, 1")
+ax[2].plot(time_lag, avgError, color = "blue", linewidth = 3, label = "Actual")
+ax[2].legend(loc = "lower right", fontsize = "x-small")
+ax[2].set_xlim(xmin = 0)
+ax[2].set_xlabel("Time Lag")
+
+fig.suptitle("Estimated Error vs. Error")
+
+"""
+Fourth plot:
+"""
+estimatedErrors = np.array([np.linalg.norm([[1/(np.e**(- time_lag[k] * i) - np.e**(-time_lag[k] * j)) for j in range(m)] for i in range(m, basisSize)], 'fro') for k in range(len(time_lag))])
+
+estimatedErrors = [[np.linalg.norm(E[t][m:,0:m], 'fro')*np.array(estimatedErrors[t])*(m*(basisSize - m))**(-1/2) for t in range(len(time_lag))] for E in Es]
+estimatedErrors = np.minimum(estimatedErrors, np.sqrt(m))
+
+[ax[3].plot(time_lag, error, color = "blue", alpha = .2) for error in proj_error]
+[ax[3].plot(time_lag, error, color = "green", alpha = .2) for error in estimatedErrors]
+
+avgEstimated = np.sum(estimatedErrors, axis = 0) / len(estimatedErrors)
+avgError = np.sum(proj_error, axis  = 0) / len(proj_error)
+
+ax[3].plot(time_lag, avgEstimated, color = "green", linewidth = 3, label = "Simplified 1st order, 2")
+ax[3].plot(time_lag, avgError, color = "blue", linewidth = 3, label = "Actual")
+ax[3].legend(loc = "lower right", fontsize = "x-small")
+ax[3].set_xlim(xmin = 0)
+ax[3].set_xlabel("Time Lag")
+
+fig.suptitle("Estimated Error vs. Error")
+
+
+plt.savefig("Graphs/EstimateErrorvsError.png")
+
 
 '''
 -------------------------------------------------------------------------------

@@ -96,20 +96,18 @@ class simulate(object):
         now = np.random.normal(np.zeros(self.n),1)
         storage = np.zeros((self.n, N))
         delta_t = self.delta_t
-        m = 2/np.sqrt(3) * np.exp(-delta_t/2) * np.array([[np.cos(np.sqrt(3)/2 * delta_t - np.pi/6), np.sin(np.sqrt(3)/2 * delta_t)], [np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t + np.pi/6)]])
-        sigma2 =  np.array([[1 - 2 * np.exp(-delta_t), 0], [0, 1 - 2 * np.exp(-delta_t)]]) + 4/3 * np.exp(-delta_t) * np.array([[np.cos(np.sqrt(3)/2 * delta_t + np.pi/6), np.sin(np.sqrt(3)/2 * delta_t) ],[np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t - np.pi/6)]])
-        print(sigma2)
-        print([sigma2]*(self.n//2))
-        sigma2 = scipy.linalg.block_diag(*([sigma2]*(self.n//2)))
+        m = 2/np.sqrt(3) * np.exp(-delta_t/2) * np.array([[np.cos(np.sqrt(3)/2 * delta_t - np.pi/6), np.sin(np.sqrt(3)/2 * delta_t)], [-np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t + np.pi/6)]])
+        # sigma2 =  np.array([[1 - 2 * np.exp(-delta_t), 0], [0, 1 - 2 * np.exp(-delta_t)]]) + 4/3 * np.exp(-delta_t) * np.array([[np.cos(np.sqrt(3)/2 * delta_t + np.pi/6), np.sin(np.sqrt(3)/2 * delta_t) ],[np.sin(np.sqrt(3)/2 * delta_t), np.cos(np.sqrt(3)/2 * delta_t - np.pi/6)]])
+        sigma2 = np.array([[1 + 2/3 * np.e**(-delta_t) * (-2 + np.sin(np.pi/6 - np.sqrt(3)*delta_t)), -2/3*np.e**(-delta_t)*(-1+np.cos(np.sqrt(3)*delta_t))], [-2/3*np.e**(-delta_t)*(-1+np.cos(np.sqrt(3)*delta_t)), 1 + 2/3 * np.e**(-delta_t) * (-2 + np.sin(np.pi/6 + np.sqrt(3)*delta_t))]])
+        sigma = scipy.linalg.sqrtm(sigma2)
+        R = np.random.normal(0, 1, [self.n, N])
+        sigma = scipy.linalg.block_diag(*([sigma]*(self.n//2)))
         update_time = round(.01*N)
-        print(m)
-        print(sigma2)
         for i in range(N):
             storage[:,i] = now
             mean = np.dot(m, np.vstack([now[slice(None, None, 2)], now[slice(1, None, 2)]]))
             mean = np.dstack((mean[0,:], mean[1,:])).flatten()
-            print(mean)
-            now = np.random.multivariate_normal(mean, sigma2)
+            now = mean + np.dot(sigma, R[:,i])
             if update and i % update_time == 0:
                 print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
         return storage
@@ -216,11 +214,13 @@ class VAC(object):
         return np.matmul(np.matmul(self.Y,self.X.T), np.linalg.inv(np.matmul(self.X, self.X.T)))
 
     def EDMD(self, m):
-        l = len(self.basis)
+        '''
+        Finds eigenvalues and eigenvectors of the matrix A.
+        '''
         if self.update:
             print("Finding eigenvalues.")
         eigvals, eigvecs = np.linalg.eig(self.A().T)
-        return [eigvals[:m], eigvecs[:m,:]]
+        return [eigvals[:m], eigvecs[:,:m]]
 
 
 
