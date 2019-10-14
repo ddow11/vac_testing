@@ -14,14 +14,13 @@ from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 import tables as tb
 
 dimension = 2
-fineness  = 5
+fineness  = 4
 endpoint = 2.5
-basis = [indicator(fineness, endpoint, center = i).to_fcn() for i in  makegrid(endpoint, dimension = dimension, n = fineness)]
 basis = [Hermite(0).to_fcn()]
 def f(x):
     return np.prod(x, axis = 0)
 basis.append(f)
-basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
+basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(1,dimension+1)]
 basisSize = len(basis)
 delta_t = .01
 T = 1000
@@ -63,9 +62,9 @@ What does error vs. time lag look like?
 
 time_lag = np.linspace(delta_t, 4, 20)
 mean = np.zeros(len(time_lag))
-starts = [0,10,20]
+starts = [0,20,40,60,80]
 m = 6
-basis_true = basis[:m]
+basis_true = [Hermite(0).to_fcn(), f, Hermite(1,1).to_fcn(), Hermite(1,2).to_fcn(), Hermite(2,1).to_fcn(), Hermite(2,2).to_fcn()]
 w_f = np.identity(m)
 distribution = np.hstack([distribution[d:d+dimension, :] for d in range(0,len(distribution), dimension)])
 Phi_g = np.array([f(distribution) for f in basis])
@@ -82,7 +81,7 @@ for i in starts:
     vac = [VAC(basis, t, l, delta_t, dimension = dimension, update = True) for l in time_lag]
     evs = [v.EDMD(basisSize) for v in vac]
     print("Now calculating error.")
-    error = [L2subspaceProj_d(w_f = w_f, w_g = ev[1].T[:m][::-1],
+    error = [L2subspaceProj_d(w_f = w_f, w_g = ev[1][:,:m].T,
                             distribution = distribution, Phi_f = Phi_f, Phi_g = Phi_g, normalize_f = False, orthoganalize = True)
                             for ev in evs]
     np.save("Trajectory_Data/underdamped_evectors_{}".format(i), [ev[1] for ev in evs])
@@ -95,7 +94,7 @@ mean = np.zeros(len(time_lag))
 for i in starts:
     error  = np.load("Trajectory_Data/underdampled_error_{}.npy".format(i))
     mean += error / len(starts)
-    ax.plot(time_lag, error, color = "green", alpha = .5)
+    ax.plot(time_lag, error, color = "green", alpha = .3)
 ax.plot(time_lag, mean, color = "green", linewidth = 3, label = "Average")
 plt.legend(loc = "lower left")
 plt.xlabel("Time Lag")
@@ -103,6 +102,7 @@ plt.ylabel("Projection Error in estimated subspaces")
 plt.title("Error in estimation with varying time lags (underdamped)")
 plt.annotate("Using a basis of 5 1-D Hermite polynomials + pq. Four trajectories, each 7,000 seconds of data", (0,0), (0, -32), fontsize = 8, xycoords='axes fraction', textcoords='offset points', va='top')
 ax.set_xlim(xmin = 0)
+ax.set_ylim(ymin = 0)
 plt.savefig("Graphs/eigenfcnError_underdamped_HermiteBasis.png")
 
 """
@@ -122,7 +122,7 @@ for i in starts:
 
 ax.plot(avgEigendist, avgError, color = "green", linewidth = 3, label = "Average")
 
-for i in range(0, len(time_lag), 2):
+for i in range(0, len(time_lag), 3):
     ax.scatter(avgEigendist[i], avgError[i], s = 18, color = "green")
     ax.annotate("{}".format(round(time_lag[i],3)), xy = (avgEigendist[i] - .001, avgError[i] + .015), weight='bold', fontsize = 6.5)
 plt.legend(loc = "lower left")
@@ -131,6 +131,7 @@ plt.ylabel("Projection Error in estimated subspaces")
 plt.title("Error in estimation with varying time lags (underdamped)")
 plt.annotate("Using a basis of 5 1-D Hermite polynomials + pq. Six trajectories, each 7,000 seconds of data", (0,0), (0, -32), fontsize = 8, xycoords='axes fraction', textcoords='offset points', va='top')
 ax.set_xlim(xmin = 0)
+ax.set_ylim(ymin = 0)
 plt.savefig("Graphs/eigenfcnErrorvsSepctralGap_UD_HermiteBasis.png")
 
 '''
@@ -139,7 +140,6 @@ Does exact error equal estimated error? Yes.
 -------------------------------------------------------------------------------
 '''
 
-time_lag = np.linspace(delta_t, 4, 20)
 mean = np.zeros(len(time_lag))
 starts = [0,20,40,60]
 m = 6
@@ -171,7 +171,7 @@ Imbedding Theorem Testing
 -------------------------------------------------------------------------------
 '''
 
-time_lag = np.linspace(delta_t, 4, 20)
+time_lag = np.linspace(delta_t, 4, 30)
 mean = np.zeros(len(time_lag))
 starts = [50,60,70,80,90,100]
 m = 6

@@ -249,6 +249,14 @@ def fcn_weighting(fs,weighting):
 
 def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis_f = False, basis_g = False,
                                             normalize_f = True, normalize_g = True, dimension = 1, orthoganalize = False):
+    '''
+    w_f, w_g: these are matrices where the rows gives the weighting of the basis functions,
+                i.e. dot(w_f[:, i], [f_1,...,f_d]) is the ith (estimated) eigenfunction
+
+
+    '''
+
+
     if len(w_f) != len(w_g):
         return "Error: Subspaces have different dimensions."
     if type(Phi_f) == bool:
@@ -266,18 +274,16 @@ def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis
             print(B)
 
     else:
-        A = Phi_f
+        A = Phi_f # A is the matrix A_{ij} = (f_i(x_j)) where f_i is the ith
+                  # basis vector and x_j is the jth data point
         B = Phi_g
 
-    A = np.dot(w_f, A)
-
-    # print(A)
-
+    A = np.dot(w_f, A) # This transforms the matrix A into a matrix A'_{ij} = (phi_i(x_j))
+                       # where phi_i is the ith (estimated) eigenfunction
     B = np.dot(w_g, B)
 
-    # print(B)
-
-    if orthoganalize:
+    if orthoganalize: # forces colulmn of A and B matrix to be orthogonal (equivalent
+                      # to making eigenfunctions orthogonal)
         A = scipy.linalg.orth(A.T).T
         B = scipy.linalg.orth(B.T).T
         P = np.dot(A,B.conj().T)
@@ -292,7 +298,10 @@ def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis
             N = np.identity(len(w_f)) / distribution.size
         # print(N)
         P = np.multiply(np.dot(A,B.conj().T), N)
-    # print(P)
+
+    # P is the matrix of dot products of the eigenfunctions from each eigenspace
+    # i.e. P_{ij} = dot(phi_i, varphi_j) / (||phi_i|| ||varphi_j||), where
+    # all of these quantities are estimated with data.
     svd = np.linalg.svd(P)[1]
     print(svd)
 

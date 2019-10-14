@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.path as path
 from hermite_poly import Hermite
 from models_and_functions import simulate, VAC, well_well
+import scipy.stats
 
 class indicator(object):
     """Makes an indicator function. Meant to be used to make a grid of indicator
@@ -32,6 +33,20 @@ class indicator(object):
         return g
 
 
+def indicator(x, left, right):
+    x = np.squeeze(x)
+    return ((x >= left) & (x < right)).astype(int)
+
+def compose(function, variables):
+    def g(x):
+        return function(x, *variables)
+    return g
+
+def makeIndicators(N):
+    result = []
+    endpoints = [scipy.stats.norm.ppf(i/N) for i in range(0,N+1)]
+    results = [compose(indicator, [endpoints[i], endpoints[i+1]]) for i in range(N)]
+    return results
 
 
 # f = indicator(10, 10, [0,0])
