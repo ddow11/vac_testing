@@ -14,21 +14,22 @@ from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 import tables as tb
 import datetime
 
-basisNum = [10]
+basisNum = [10, 40, 100, 300]
 dimension = 1
 delta_t = .01
 T = 1000
 n = 160
-h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r')
+h5 = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), 'r') # retrieves the trajectory data
 a = h5.root.data
 h5.close()
-k= 3
-time_lag = np.hstack([np.linspace(delta_t, .3,6), np.linspace(.4, 5, 12)])
+k= 3 # dimension of eigenspace to estimate
+time_lag = np.hstack([np.linspace(delta_t, .3,6), np.linspace(.4, 5, 12)]) # time lags
 
 basis_true = [Hermite(0).to_fcn()]
 basis_true = basis_true + [Hermite(n, d).to_fcn() for n in range(1, k) for d in range(dimension)]
 w_f = np.identity(k)
-distribution = np.random.normal(np.zeros([dimension,int(1e6)]), 1)
+
+distribution = np.random.normal(np.zeros([dimension,int(1e6)]), 1) # distribution used to calculate projection error
 
 Phi_f = np.array([f(distribution) for f in basis_true])
 
@@ -36,6 +37,7 @@ sysErrors = []
 minErrors = []
 
 for fineness in basisNum:
+    # first, compute exact projections onto basis functions
     basis = basis_sets.makeIndicators(fineness)
     basisSize = len(basis)
     exactProj = np.zeros((k,basisSize))
@@ -45,7 +47,7 @@ for fineness in basisNum:
         for j in range(k):
             exactProj[j,i] = scipy.integrate.quad(lambda x: Hermite(j).to_fcn()(x)*scipy.stats.norm.pdf(x), lower, upper)[0]
 
-
+    # then, compute exact C(t) and C(0)
     lefts = [scipy.stats.norm.ppf(i / fineness) for i in range(fineness)]
     rights = [scipy.stats.norm.ppf((i+1)/fineness) for i in range(fineness)]
 
@@ -55,7 +57,7 @@ for fineness in basisNum:
         for i, (left1, right1) in enumerate(zip(lefts,rights)):
             for j, (left2, right2) in enumerate(zip(lefts[:i+1], rights[:i+1])):
                 f = lambda x,y: scipy.stats.multivariate_normal.pdf((x,y), mean=[0,0], cov=[[1, np.exp(-t)], [np.exp(-t), 1]])
-                Ct[i,j] = scipy.integrate.dblquad(f, left1, right1, lambda x: left2, lambda x: right2)[0]
+                Ct[i,j] = scipy.integrate.dblquad(f, left1, right1, lambda x: left2, lambda x: right2)[0] # inner product with I_j and I_i w.r.t. normal distribution
                 print("Done with:\n time lag: {},\n function1 = {},\n function2 = {}".format(t, i, j))
         Cts.append(Ct)
 
@@ -63,7 +65,14 @@ for fineness in basisNum:
 
     eigs = [scipy.linalg.eigh(Ct, C0) for Ct in Cts]
 
+    # now compute distances
+
     Phi_g = np.array([f(distribution) for f in basis])
+
+    # w_f, w_g are the weigthing of the basis functions for
+    # the basis set fs and gs.
+    # Here, w_f corresponds to the weighting of the Hermite polys (identity bc they are the actual eigenfcsn)
+    # w_g corresponds to the weighting of the indicator fcns (obtained from the eigenvectors)
 
     minError = L2subspaceProj_d(w_f = w_f, w_g = exactProj,
                             distribution = distribution, Phi_f = Phi_f, Phi_g = Phi_g, normalize_f = False)
