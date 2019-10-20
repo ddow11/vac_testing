@@ -14,7 +14,7 @@ from pylab import meshgrid,cm,imshow,contour,clabel,colorbar,axis,title,show
 import tables as tb
 import datetime
 
-fineness  = 100
+fineness  = 20
 dimension = 1
 basis = basis_sets.makeIndicators(fineness)
 basisSize = len(basis)
@@ -134,8 +134,8 @@ for j in range(len(projError)):
 [ax[j].set_xlabel("Eigen Gap") for j in range(len(projError))]
 
 fig.suptitle("Theoretical Systematic Error vs. Error")
-plt.annotate("Basis of 50 indicator functions. Estimating three eigenfunctions.", (0,0), (0, -32), fontsize = 7, xycoords='axes fraction', textcoords='offset points', va='top')
+plt.annotate("Basis of 20 indicator functions. Estimating three eigenfunctions.", (0,0), (0, -32), fontsize = 7, xycoords='axes fraction', textcoords='offset points', va='top')
 
 plt.show()
 
-# plt.savefig("Graphs/sysError.png")
+plt.savefig("Graphs/sysError_20.png")
