@@ -1,7 +1,7 @@
 import scipy.stats
 from scipy.special import hermite
 from scipy.linalg import eigh
-from math import factorial
+from math import sqrt,factorial
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,7 +17,7 @@ class Hermite(object):
         for m in range(self.n // 2 + 1):
             y += (-1)**m * np.power(x, (self.n - 2*m)) / (factorial(m)*factorial(self.n - 2*m) * 2 ** m)
 
-        return np.squeeze(np.array(np.sqrt(factorial(self.n)) * y))
+        return np.squeeze(np.array(sqrt(factorial(self.n)) * y))
 
     def to_fcn(self):
         def g(x):

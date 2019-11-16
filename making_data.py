@@ -56,29 +56,46 @@ creating some data
 #
 # print("Done with OU.")
 
-# delta_t = .001
+delta_t = .001
+T = 1000
+n = 150
+speeds = [.05,1,5]
+x = simulate(delta_t, T, n = n)
+
+f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={},speeds={}.h5".format(delta_t, T, n, speeds), "w")
+filters = tb.Filters(complevel=5, complib='blosc')
+out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
+out[:,:] = x.normal(speed = speeds, update = True)
+f.close()
+
+print("Done with OU varying speeds.")
+
+# delta_t = .01
 # T = 1000
-# n = 150
-# speeds = [.05,1,5]
+# n = 160
 # x = simulate(delta_t, T, n = n)
 #
-# f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={},speeds={}.h5".format(delta_t, T, n, speeds), "w")
+# f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
 # filters = tb.Filters(complevel=5, complib='blosc')
 # out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-# out[:,:] = x.normal(speed = speeds, update = True)
+# out[:,:] = x.normal(update = True)
 # f.close()
 #
 # print("Done with OU varying speeds.")
 
-delta_t = .01
-T = 1000
-n = 160
+
+delta_t = .0005
+T = 100
+n = 20
+total = round(T / delta_t)
+base = np.ones(round(total / 5))
+gammas = np.hstack([base * .25, base * .5, base, base *4, base * 10])
+
+np.linspace(.05, 20, round(T / delta_t))
 x = simulate(delta_t, T, n = n)
 
-f = tb.open_file("Trajectory_Data/OU_1D_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
+f = tb.open_file("Trajectory_Data/UDG_delta_t={},T={},n={}.h5".format(delta_t, T, n), "w")
 filters = tb.Filters(complevel=5, complib='blosc')
 out = f.create_carray(f.root, 'data', tb.Float32Atom(), shape=(n, np.rint(T/delta_t)), filters=filters)
-out[:,:] = x.normal(update = True)
+out[:,:] = x.underdampedApproxGamma(gammas, update = True)
 f.close()
-
-print("Done with OU varying speeds.")

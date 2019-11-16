@@ -260,11 +260,41 @@ simpleGap = 1 / eigen_dist_exact
 
 fig, ax = plt.subplots(nrows = 1, ncols = 1)
 
-ax.plot(time_lag, complicatedGap, color = "forestgreen", label = "Complicated Gap, inverse")
-ax.plot(time_lag, simpleGap, color = "blue",label = "Simple Gap, inverse")
+ax.semilogy(time_lag, complicatedGap, color = "forestgreen", label = "Complicated Gap, inverse")
+ax.semilogy(time_lag, simpleGap, color = "blue",label = "Simple Gap, inverse")
 ax.legend()
 ax.set_xlim(xmin = 0)
 ax.set_ylim(ymin = 0)
+ax.set_xlabel("Time Lag")
 fig.suptitle("Simple Spectral Gap vs. Complicated Spectral Gap")
 
 plt.savefig("Graphs/SimplevsComplicatedGap")
+
+'''
+-------------------------------------------------------------------------------
+Complicated Spectral Gap Graph
+-------------------------------------------------------------------------------
+'''
+
+m = 3
+basisSize = 100
+time_lag2 = np.linspace(1, 3.25, 30)
+time_lag1 = np.linspace(0, 1, 20)
+
+optimal = np.log(3/2)
+
+spectralGaps =  [np.array([[1/(np.e**(- (t-(1 - optimal)) * j) - np.e**(-(t-(1 - optimal)) * i)) for j in range(basisSize)] for i in range(basisSize)]) for t in time_lag2]
+complicatedGap = [np.linalg.norm(Gaps[m:,:m], 'fro')*(m*(basisSize - m))**(-1) for Gaps in spectralGaps]
+
+fig, ax = plt.subplots(nrows = 1, ncols = 1)
+
+ax.semilogx(time_lag2, complicatedGap, color =  "green")
+ax.semilogx(time_lag1, np.repeat(complicatedGap[0],len(time_lag1)), color = "green", dashes = [3,3])
+ax.legend()
+ax.set_xlim(xmin = 0.1)
+ax.set_ylim(ymin = 0)
+ax.set_xlabel("Time Lag")
+ax.set_ylabel("Error")
+fig.suptitle("Spectral Gap Estimate of Sampling Error in VAC")
+
+plt.savefig("Good Graphs/CoolGapGraph_log")

@@ -7,6 +7,7 @@ from hermite_poly import Hermite
 import itertools
 from scipy.linalg import subspace_angles
 import scipy
+import math
 
 
 class simulate(object):
@@ -42,19 +43,19 @@ class simulate(object):
         speed: int, float, to 1D array
         '''
 
-        # if type(speed) == int or type(speed) == float:
-        #     speed = np.array([speed])
-        # if self.n % len(speed) != 0:
-        #     raise ValueError("Number of samples must be divisible by number of speeds.")
+        if type(speed) == int or type(speed) == float:
+            speed = np.array([speed])
+        if self.n % len(speed) != 0:
+            raise ValueError("Number of samples must be divisible by number of speeds.")
 
-        # speed = np.tile(np.array(speed), self.n // len(speed))
+        speed = np.tile(np.array(speed), self.n // len(speed))
 
         N = round(self.T/self.delta_t)
         now = np.random.normal(np.zeros(self.n),1)
         storage = np.zeros((self.n, N))
-        m = np.exp(-self.delta_t)
+        m = np.exp(-speed*self.delta_t)
         sigma = np.sqrt(1 - np.square(m))
-        R = np.random.normal(0, 1, [self.n, N]) * sigma
+        R = np.random.normal(0, np.matrix(sigma).T, [self.n, N])
         update_time = round(.01*N)
         for i in range(N):
             storage[:,i] = now
@@ -131,6 +132,25 @@ class simulate(object):
                 print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
         return storage
 
+    def underdampedApproxGamma(self, gammas, update = False):
+        if self.n % 2 != 0:
+            return "Number of trajectories must be divisible by 2."
+        N = round(self.T/self.delta_t)
+        now = np.random.normal(np.zeros(self.n),1)
+        storage = np.zeros((self.n, N))
+        R = np.multiply(np.random.normal(np.zeros((self.n // 2, N)),1), np.sqrt(2*self.delta_t))
+        if update:
+            update_time = round(.01 * N)
+        for i in range(0,N):
+            gamma = gammas[i]
+            storage[:,i] = now
+            now_q = now[slice(None, None, 2)]
+            now_p = now[slice(1, None, 2)]
+            now[slice(None, None, 2)] = now_q + now_p * self.delta_t * gamma
+            now[slice(1, None, 2)] = now_p - (gamma * now_p + now_q) * (self.delta_t*gamma) + gamma * R[:,i]
+            if update and i % update_time == 0:
+                print(str(i*self.delta_t) + " seconds done out of " + str(self.T))
+        return storage
 
 
 '''
@@ -248,7 +268,8 @@ def fcn_weighting(fs,weighting):
     return g
 
 def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis_f = False, basis_g = False,
-                                            normalize_f = True, normalize_g = True, dimension = 1, orthoganalize = False):
+                                            normalize_f = True, normalize_g = True, dimension = 1, orthoganalize = False,
+                                            tangents = False):
     '''
     w_f, w_g: these are matrices where the rows gives the weighting of the basis functions,
                 i.e. dot(w_f[:, i], [f_1,...,f_d]) is the ith (estimated) eigenfunction
@@ -304,8 +325,10 @@ def L2subspaceProj_d(w_f, w_g, distribution, Phi_f = False, Phi_g = False, basis
     # all of these quantities are estimated with data.
     svd = np.linalg.svd(P)[1]
     print(svd)
-
-    if len(w_f) < np.sum(np.square(svd)) < len(w_f) + 1e-4:
+    if tangents:
+        svd = np.sqrt(np.maximum((1 - np.square(svd)), 0)) / svd
+        return np.sqrt(np.sum(np.square(svd)))
+    if len(w_f) < np.sum(np.square(svd)) < len(w_f) + 1e-12:
         return 0
     elif np.sum(np.square(svd)) > len(w_f):
         return "Singular values are too large, probably not normalized correctly."
@@ -347,3 +370,26 @@ print(L2subspaceProj_d(w_f = np.identity(3), w_g = np.identity(3),
 # print(V.X)
 # print('/n')
 # print(V.Y)
+
+def orthonormol(vectors):
+    return normalize(ortho(vectors))
+
+def normalize(vectors):
+    return np.array([v / np.linalg.norm(v) for v in vectors])
+
+def ortho(vectors):
+    v = vectors[0]
+    if len(vectors) == 1:
+        return vectors
+
+    else:
+        rest = ortho(vectors[1:])
+        a = np.zeros(len(v))
+        for u in rest:
+            a += np.dot(u,v) / (np.dot(u,u)) * u
+        return np.vstack([[v - a], rest])
+
+
+
+
+np.sqrt(3 - np.sum(np.square([1., 0.99999986, 0.99999952])))
