@@ -5,7 +5,7 @@ import numpy as  np
 import matplotlib.pyplot as plt
 import matplotlib.path as path
 from hermite_poly import Hermite, Poly
-from simple_models import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU, dot
+from models_and_functions import simulate, VAC, well_well, makegrid, fcn_weighting, L2subspaceProj_d, OU, dot
 from mpl_toolkits import mplot3d
 from basis_sets import indicator
 from numpy import exp,arange
@@ -15,7 +15,6 @@ import tables as tb
 dimension = 2
 fineness  = 4
 endpoint = 2.5
-basis = [indicator(fineness, endpoint, center = i).to_fcn() for i in  makegrid(endpoint, dimension = dimension, n = fineness)]
 basis = [Hermite(0).to_fcn()]
 basis = basis + [Hermite(n, d).to_fcn() for n in range(1, fineness) for d in range(dimension)]
 basisSize = len(basis)
